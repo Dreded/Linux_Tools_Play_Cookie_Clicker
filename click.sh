@@ -104,6 +104,7 @@ click1() { moveAndClick ${B1_BUTTON[@]}; }
 clickSell() { moveAndClick ${SELL_BUTTON[@]}; }
 clickBuy100() { clickBuy; click100; }
 clickSellAll() { clickSell; moveAndClick ${SELL_ALL_BUTTON[@]}; }
+clickNewsTicker() { moveAndClick ${NEWS_TICKER[@]}; }
 muteWizard() { 
   if [[ $COOKIE_ONLY ]]; then
     return
@@ -257,6 +258,7 @@ while [ 1 ]
 do 
   if [[ $((counter%CLICKS_BETWEEN_BUY)) -eq 0 ]]; then
     doBuy
+    clickNewsTicker
     findGoldCookies
     sellBuildingBonus $BONUS_BUY_NUM
   fi
