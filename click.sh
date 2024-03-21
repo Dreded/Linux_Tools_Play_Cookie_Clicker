@@ -7,25 +7,12 @@
 # this makes mouse clicks
 # xdotool click --repeat 10000000 --delay 35
 
+BONUS_BUY_NUM=7
+
 #xbindkeys allows us to use a key 'q' to close all the scripts
 xbindkeys -f xbindkeys.conf
-case $1 in
-  n | normal)
-    echo "Click Cookie, Buy Upgrades, Fortune Cookies & Buy Buildings"
-    ;;
-  f | fortune)
-    echo "Click Cookie & Fortune Cookies"
-    FORTUNE_MODE=1
-    ;;
-  cal | calibrate)
-    echo "Calibration Mode"
-    CALIBRATION_MODE=1
-    ;;
-  c | cookieonly | *)
-    COOKIE_ONLY=1
-    echo "Clicking Cookie Only!"
-    ;;
-esac
+
+# $1 at bottom
 if [[ $2 -gt 0 ]]; then
   COOKIES_PER_CLICK=$2
 else
@@ -56,6 +43,37 @@ if [[ $4 -gt 0 ]]; then
 else
   CLICKS_BETWEEN_BUY=100
 fi
+case $1 in
+  n | normal)
+    echo "Click Cookie, Buy Upgrades, Fortune Cookies & Buy Buildings"
+    BUY_UPGRADE=1
+    FORTUNE_MODE=1
+    DOBUY_MODE=1
+    ;;
+  f | fortune)
+    echo "Click Cookie & Fortune Cookies"
+    FORTUNE_MODE=1
+    ;;
+  cb | clickBonus)
+    echo "Sell Buildings & Click Mode"
+    CLICKBONUS_MODE=1
+    CLICKS_BETWEEN_BUY=230
+    ;;
+  cbf | clickBonusFortune)
+    echo "Sell Buildings, Fortune & Click Mode"
+    CLICKBONUS_MODE=1
+    FORTUNE_MODE=1
+    CLICKS_BETWEEN_BUY=230
+    ;;
+  cal | calibrate)
+    echo "Calibration Mode"
+    CALIBRATION_MODE=1
+    ;;
+  c | cookieonly | *)
+    COOKIE_ONLY=1
+    echo "Clicking Cookie Only!"
+    ;;
+esac
 
 # GUI Pixel stuff
 # eval gets us WINDOW,X,Y,WIDTH,HEIGHT
@@ -77,13 +95,59 @@ readConfig
 moveAndClick() { xdotool mousemove --window $WINDOW $1 $2 click --delay 1 1; }
 moveTo() { xdotool mousemove --window $WINDOW $1 $2; }
 moveToCookie() { moveTo ${COOKIE[@]}; }
+scrollMenuTop() { moveTo ${CURSOR_BUTTON[@]}; doClick 12 4; }
 buyUpgrade() { moveAndClick ${UPGRADE_ICON[@]}; }
+clickBuy() { moveAndClick ${BUY_BUTTON[@]}; }
+click100() { moveAndClick ${B100_BUTTON[@]}; }
+click10() { moveAndClick ${B10_BUTTON[@]}; }
+click1() { moveAndClick ${B1_BUTTON[@]}; }
+clickSell() { moveAndClick ${SELL_BUTTON[@]}; }
+clickBuy100() { clickBuy; click100; }
+clickSellAll() { clickSell; moveAndClick ${SELL_ALL_BUTTON[@]}; }
 muteWizard() { 
   if [[ $COOKIE_ONLY ]]; then
     return
   fi
   moveAndClick ${WIZARD_MUTE[@]}
 }
+
+sellBuildingBonus() {
+  if ! [[ $CLICKBONUS_MODE ]]; then
+    return
+  fi
+  if ! [[ $FORTUNE_MODE ]] && ! [[ $((SECONDS%11)) -eq 0 ]]; then
+    return
+  fi
+  # *100
+  local buyNum=$1
+  scrollMenuTop
+
+  clickSellAll
+  clickButtonXFromCursorButton 3 1
+  clickButtonXFromCursorButton 4 1
+  clickButtonXFromCursorButton 5 1
+  
+  clickBuy100
+  clickButtonXFromCursorButton 3 $buyNum
+  clickButtonXFromCursorButton 4 $buyNum
+  clickButtonXFromCursorButton 5 $buyNum
+
+  SECONDS=1
+}
+
+clickButtonXFromCursorButton() {
+  # need menu to be scrolled to top
+  # $1=0 = CURSOR_BUTTON
+  local button=$1
+  local clickTimes=$2
+  #mostly used to buy and sell Mine, Factory, and Bank
+
+  local x=${CURSOR_BUTTON[0]}
+  local y=$((${CURSOR_BUTTON[1]}+($1*$SPACE_BETWEEN_BUTTONS)))
+  moveTo $x $y
+  doClick $clickTimes
+}
+
 clickEachBuy() {
   local x=${BUY_ICON_TOP[0]}
   local y=${BUY_ICON_TOP[1]}
@@ -102,13 +166,10 @@ clickEachBuy() {
   done
 }
 findGoldCookies() {
-  if [[ FORTUNE_MODE -eq 0 ]]; then
+  if [[ $FORTUNE_MODE -eq 0 ]]; then
     return
   fi
   
-  if [[ $((counter%CLICKS_BETWEEN_BUY)) -ne 0 ]]; then
-    return
-  fi
   local start_x=$((${TOP_LEFT[0]}+50))
   start_x="${TOP_MIDDLE_BAR[0]}"
   local start_y="${TOP_MIDDLE_BAR[1]}"
@@ -165,17 +226,19 @@ clickCookie() {
 }
 
 doClick () {
-  if [[ $1 -gt 1 ]]
-  then
-    xdotool click --repeat $1 --delay $CLICK_DELAY 1 
+  # doClick REPEAT_INT MOUSE_BUTTON_INT
+  local mouse_button=1
+  if [[ $2 -gt 1 ]]; then mouse_button=$2
+  fi
+  if [[ $1 -gt 1 ]]; then
+    xdotool click --repeat $1 --delay $CLICK_DELAY $mouse_button
   else
-    xdotool click --delay 1 1 
+    xdotool click --delay 1 $mouse_button 
   fi
 }
 
 doBuy() {
-  if [[ $COOKIE_ONLY ]] || [[ $FORTUNE_MODE ]]; then
-    # "No Buy"
+  if ! [[ $DOBUY_MODE ]]; then
     return
   fi
   
@@ -192,16 +255,16 @@ doBuy() {
 
 sleep .1
 counter=1
-
 muteWizard
+sellBuildingBonus $BONUS_BUY_NUM
 moveToCookie
 while [ 1 ]
-do
-  if ! [[ $COOKIE_ONLY ]]; then
+do 
+  if [[ $((counter%CLICKS_BETWEEN_BUY)) -eq 0 ]]; then
     doBuy
     findGoldCookies
+    sellBuildingBonus $BONUS_BUY_NUM
   fi
-  
   clickCookie
   ((counter++))
   printf {"\rClicks:\t%d\nCookies:%'d %s\033[1A",$counter,$((counter*COOKIES_PER_CLICK)),$COOKIE_VERB} 
