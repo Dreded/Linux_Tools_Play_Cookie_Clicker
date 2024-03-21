@@ -61,8 +61,13 @@ printConfig() {
  done
 }
 
+:TODO
+parseArgs() {
+}
+
 #SO WE APPEND TO NEW FILE
-deleteConfig
+#deleteConfig
+parseArgs
 
 getRelativeMousePos "Please 'Mute' all Middle areas\n\tMiddle Click to Continue" 2
 getRelativeMousePos "Click the Center of the Cookie"
