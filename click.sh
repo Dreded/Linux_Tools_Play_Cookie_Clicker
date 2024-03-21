@@ -122,13 +122,9 @@ sellBuildingBonus() {
 
   clickSellAll
   clickButtonXFromCursorButton 3 1
-  clickButtonXFromCursorButton 4 1
-  clickButtonXFromCursorButton 5 1
   
   clickBuy100
   clickButtonXFromCursorButton 3 $buyNum
-  clickButtonXFromCursorButton 4 $buyNum
-  clickButtonXFromCursorButton 5 $buyNum
 }
 
 clickButtonXFromCursorButton() {
