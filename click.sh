@@ -115,9 +115,6 @@ sellBuildingBonus() {
   if ! [[ $CLICKBONUS_MODE ]]; then
     return
   fi
-  if ! [[ $FORTUNE_MODE ]] && ! [[ $((SECONDS%11)) -eq 0 ]]; then
-    return
-  fi
   # *100
   local buyNum=$1
   scrollMenuTop
@@ -131,8 +128,6 @@ sellBuildingBonus() {
   clickButtonXFromCursorButton 3 $buyNum
   clickButtonXFromCursorButton 4 $buyNum
   clickButtonXFromCursorButton 5 $buyNum
-
-  SECONDS=1
 }
 
 clickButtonXFromCursorButton() {
